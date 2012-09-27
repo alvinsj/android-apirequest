@@ -55,7 +55,7 @@ public class CacheStrategyMatch extends CacheStrategy {
         CacheStore store = getCacheStore(apiManager.getContext());
         
         if(store.getMatched(ent, getCacheGroup(), getCacheId()) != null) {
-        	handleCachedResponse(ent, handler);
+        	handleCachedResponse(ent, handler, apiManager.getContext());
         }
         else {
             apiManager.get(address, headerParams, getAPIRequestHandler(handler, apiManager.getContext()));
@@ -70,20 +70,21 @@ public class CacheStrategyMatch extends CacheStrategy {
         CachableHttpEntity ent = new CachableHttpEntity();
         
         if( store.getMatched(ent, getCacheGroup(), getCacheId()) != null){
-        	handleCachedResponse(ent, handler);
+        	handleCachedResponse(ent, handler, apiManager.getContext());
         }
         else{
             apiManager.post(address, params, getAPIRequestHandler(handler, apiManager.getContext()));
         }
 	}
 	
-	private void handleCachedResponse(CachableHttpEntity ent, APIRequestHandler handler){
+	private void handleCachedResponse(CachableHttpEntity ent, APIRequestHandler handler, Context context){
         log("Found Matching CACHE("+getCacheGroup()+":"+getCacheId()+")");
         
         handler.before();
         try {
             handler.onResponse(ent.getHttpEntity());
         } catch (Exception e) {
+        	getCacheStore(context).remove(getCacheGroup(), getCacheId());
             handler.onException(e);
         }
 	}

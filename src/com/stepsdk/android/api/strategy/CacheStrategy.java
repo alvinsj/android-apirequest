@@ -47,8 +47,8 @@ public abstract class CacheStrategy {
 	public static final int STRATEGY_RESPONSE_VERSION = 3;
 	
     private static CacheStore mCachedAPI;
-    private static String mCacheGroup;
-    private static String mCacheId;
+    private String mCacheGroup;
+    private String mCacheId;
 	
 	public static CacheStrategy build(int strategy, String cacheGroup, String cacheId){
 		CacheStrategy cache = null;
