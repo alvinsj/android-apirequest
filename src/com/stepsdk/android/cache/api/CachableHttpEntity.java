@@ -55,7 +55,7 @@ import java.util.HashMap;
 
 public class CachableHttpEntity implements Cachable{
 
-    public HashMap<String, String> mHttpEntity = null;
+    public HttpEntity mHttpEntity = null;
     public String mKey = null;
     public String mType = null;
     
@@ -64,7 +64,7 @@ public class CachableHttpEntity implements Cachable{
     }
     
     public CachableHttpEntity(String type, String key, HttpEntity ent){
-        mHttpEntity  = mapEntity(ent);
+        mHttpEntity  = ent;
         mType = type;
         mKey = key;
     }
@@ -79,26 +79,21 @@ public class CachableHttpEntity implements Cachable{
     }
 
     public Cachable fromCache(String type, String key, HashMap<String, String> cache) {
-//        String osStream = cache.get("outputStream");
-//        if(osStream == null)
-//            return null;
-//        InputStream is = new ByteArrayInputStream(osStream.getBytes());
-//        HttpEntity ent = new InputStreamEntity(is, osStream.getBytes().length);
-        mHttpEntity = cache;
+        String osStream = cache.get("outputStream");
+        if(osStream == null)
+            return null;
+        InputStream is = new ByteArrayInputStream(osStream.getBytes());
+        mHttpEntity = new InputStreamEntity(is, osStream.getBytes().length);
         mType = type;
         mKey = key;
         return this;
     }
 
     public HashMap<String, String> toCache() {
-        return mHttpEntity;
-    }
-    
-    public HashMap<String, String> mapEntity(HttpEntity httpEntity){
-    	ByteArrayOutputStream os = new ByteArrayOutputStream();
+        ByteArrayOutputStream os = new ByteArrayOutputStream();
         String osString = "";
         try {
-            httpEntity.writeTo(os);
+            mHttpEntity.writeTo(os);
             osString = new String(os.toByteArray());
         } catch (IOException e) {
             e.printStackTrace();
@@ -109,12 +104,7 @@ public class CachableHttpEntity implements Cachable{
     }
 
     public HttpEntity getHttpEntity() {
-    	String osStream = mHttpEntity.get("outputStream");
-        if(osStream == null)
-            return null;
-        InputStream is = new ByteArrayInputStream(osStream.getBytes());
-        HttpEntity ent = new InputStreamEntity(is, osStream.getBytes().length);
-        return ent;
+        return mHttpEntity;
     }
     
 }
