@@ -74,6 +74,7 @@ public class CacheStrategyResponseVersion extends CacheStrategy{
             handler.onResponse(ent.getHttpEntity());
         } catch (Exception e) {
         	getCacheStore(context).remove(getCacheGroup(), getCacheId());
+        	getCacheStore(context).remove(getCacheGroup(), getCacheVersion());
             handler.onException(e);
         }
 	}
@@ -99,7 +100,8 @@ public class CacheStrategyResponseVersion extends CacheStrategy{
 		    	CacheStore store = getCacheStore(context);
 		    	// check version change
 		    	String version = store.get(getCacheGroup(), getCacheVersion());
-		    	if( handler.hasVersionChanged(response, version) && version != null ) {
+		    	
+		    	if( version != null && handler.hasVersionChanged(response, version)  ) {
 		    		log("VERSION CHANGED FROM "+version+" to "+handler.getVersion(response)+" of CACHE:("+getCacheId()+")");
 		    		// store and use new version
 		    		storeAndUseCache(response, version);

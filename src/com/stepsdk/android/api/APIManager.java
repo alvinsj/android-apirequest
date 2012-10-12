@@ -170,6 +170,7 @@ public class APIManager {
                     } catch (Exception e) {
                         if (--retryRemaining == 0) {
                             handler.onException(e);
+                            e.printStackTrace();
                         }
                     }
                 }
