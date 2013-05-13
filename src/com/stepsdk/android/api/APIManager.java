@@ -36,6 +36,7 @@ import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -376,6 +377,11 @@ public class APIManager {
         });
 
         HttpGet get = new HttpGet(url);
+        
+        if(headerParams == null)
+        {
+        	headerParams = new HashMap<String, String>();
+        }
         
         Iterator<String> i = headerParams.keySet().iterator();
         
