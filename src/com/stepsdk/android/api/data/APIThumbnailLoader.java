@@ -31,9 +31,8 @@
 
 package com.stepsdk.android.api.data;
 
-import com.stepsdk.android.api.APIManager;
+import com.stepsdk.android.api.APIClient;
 import com.stepsdk.android.api.APIRequest;
-import com.stepsdk.android.app.AppConfig;
 import com.stepsdk.android.event.Event;
 
 import android.content.Context;
@@ -144,14 +143,14 @@ public class APIThumbnailLoader extends Observable{
 
             if (mBusy)
                 return;
-            AppConfig.log("APIThumbnailLoader", "Downloading("+url+"):"+cacheId);
+            APIClient.log("APIThumbnailLoader", "Downloading("+url+"):"+cacheId);
 
-            mThumbnailLoader.load(new APIRequest(new APIManager(mContext), url, "GET"), cacheId,
+            mThumbnailLoader.load(new APIRequest(new APIClient(mContext), url, "GET"), cacheId,
                     new APIDataRequestHandler() {
 
                         @Override
                         public void onException(Exception e) {
-                            AppConfig.log("APIThumbnailLoader", "Error downloading thumbnail: "+cacheId);
+                            APIClient.log("APIThumbnailLoader", "Error downloading thumbnail: "+cacheId);
                         }
 
                         @Override
@@ -167,7 +166,7 @@ public class APIThumbnailLoader extends Observable{
                             msg.setData(b);
                             msg.obj = iv;
                             
-                            AppConfig.log("APIThumbnailLoader", "Downloaded("+url+"):"+data.getAbsolutePath());
+                            APIClient.log("APIThumbnailLoader", "Downloaded("+url+"):"+data.getAbsolutePath());
                             onThumbnailLoadedHandler().sendMessage(msg);
 
                             data = null;
@@ -175,7 +174,7 @@ public class APIThumbnailLoader extends Observable{
                         
                         @Override
                         public void after() {
-                            AppConfig.log("APIThumbnailLoader", "DownloadingTask ended: "+url);
+                            APIClient.log("APIThumbnailLoader", "DownloadingTask ended: "+url);
                         	super.after();
                         }
                     });
@@ -198,7 +197,7 @@ public class APIThumbnailLoader extends Observable{
                 int position = msg.getData().getInt("position");
 
                 ImageView iv = (ImageView)msg.obj;
-                AppConfig.log("APIThumbnailLoader", "Setting thumbnail from:"+filepath);
+                APIClient.log("APIThumbnailLoader", "Setting thumbnail from:"+filepath);
 
                 try {
                     Bitmap bm = BitmapFactory.decodeFile(filepath);
@@ -209,7 +208,7 @@ public class APIThumbnailLoader extends Observable{
                         iv.setImageURI(Uri.parse(filepath));
                         iv.setVisibility(View.VISIBLE);
                         
-                        AppConfig.log("APIThumbnailLoader", "Image("+filepath+") set for :"+cacheId);
+                        APIClient.log("APIThumbnailLoader", "Image("+filepath+") set for :"+cacheId);
 
                         onThumbnailLoaded(filepath);
 
@@ -230,13 +229,13 @@ public class APIThumbnailLoader extends Observable{
                     	else if(bm == null)
                     		throw new Exception("Bitmap cannot be decoded");
                     	else 
-                    		AppConfig.log("APIThumbnailLoader", "Wrong position for:"+cacheId);
+                    		APIClient.log("APIThumbnailLoader", "Wrong position for:"+cacheId);
                     }
                 } catch (Exception e) {
                     File f = new File(filepath);
                     f.delete();
                     f = null;
-                    AppConfig.log("APIThumbnailLoader", "Exception for ("+filepath+"):"+e.getMessage());
+                    APIClient.log("APIThumbnailLoader", "Exception for ("+filepath+"):"+e.getMessage());
 
                 }
                 setChanged();

@@ -46,7 +46,6 @@ import android.content.DialogInterface;
 import android.os.AsyncTask;
 import android.util.Log;
 
-import com.stepsdk.android.util.QuickUI;
 
 public class BlindHttpUploadTask extends AsyncTask<String, Integer, Boolean > {
     public static final String TAG = "UploadLocalFileTask";
@@ -161,16 +160,27 @@ public class BlindHttpUploadTask extends AsyncTask<String, Integer, Boolean > {
         //mProgressDialog = QuickUI.dialogProgressHorizontal(mContext, mContext.getString(R.string.msg_upload_file), false);
         mProgressDialog.show();
     }
+    
+    protected AlertDialog alertDialogforNotification(Context context, String title, String message, boolean cancelable) {
+    	AlertDialog.Builder dlgBuilder = new AlertDialog.Builder(context);
+        dlgBuilder.setMessage(message).setCancelable(cancelable)
+                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                });
+        return dlgBuilder.create();
+    }
 
     @Override
     protected void onPostExecute(Boolean result) {
         mProgressDialog.dismiss();
         if(result){               
-            AlertDialog alertDialog = QuickUI.dialogAlert(mContext
+            AlertDialog alertDialog = alertDialogforNotification(mContext
                     , "File uploaded"
                     , "File uploaded"
                     , false);
-            alertDialog.setButton("OK", new OnClickListener(){
+            alertDialog.setButton(0, "OK", new OnClickListener(){
                 @Override
                 public void onClick(DialogInterface dialog, int which) {
                     dialog.cancel();
@@ -180,7 +190,7 @@ public class BlindHttpUploadTask extends AsyncTask<String, Integer, Boolean > {
             
         }
         else {
-            AlertDialog alertDialog = QuickUI.dialogAlert(mContext
+            AlertDialog alertDialog = alertDialogforNotification(mContext
                             , "Error"
                             , "File upload error"
                             , false);

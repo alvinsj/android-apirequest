@@ -36,7 +36,7 @@ import java.util.Map;
 import android.content.Context;
 import android.util.Log;
 
-import com.stepsdk.android.api.APIManager;
+import com.stepsdk.android.api.APIClient;
 import com.stepsdk.android.api.APIRequestHandler;
 import com.stepsdk.android.cache.CacheStore;
 import com.stepsdk.android.cache.api.CachableHttpEntity;
@@ -46,25 +46,41 @@ public abstract class CacheStrategy {
 	public static final int STRATEGY_LATEST = 2;
 	public static final int STRATEGY_RESPONSE_VERSION = 3;
 	
-    private static CacheStore mCachedAPI;
     private String mCacheGroup;
     private String mCacheId;
 	
-	public static CacheStrategy build(int strategy, String cacheGroup, String cacheId){
+	public static CacheStrategy build(int strategy, String cacheGroup, String cacheId, final CacheStore cacheStore){
 		CacheStrategy cache = null;
 		switch(strategy){
-		case STRATEGY_MATCH: cache = new CacheStrategyMatch(cacheGroup, cacheId);break;
-		case STRATEGY_LATEST: cache = new CacheStrategyLatest(cacheGroup, cacheId);break;
-		case STRATEGY_RESPONSE_VERSION: cache = new CacheStrategyResponseVersion(cacheGroup, cacheId);break;
+		case STRATEGY_MATCH: cache = new CacheStrategyMatch(cacheGroup, cacheId){
+
+			@Override
+			protected CacheStore getCacheStore(Context context) {
+				return cacheStore;
+			}
+			
+		};break;
+		case STRATEGY_LATEST: cache = new CacheStrategyLatest(cacheGroup, cacheId){
+
+			@Override
+			protected CacheStore getCacheStore(Context context) {
+				return cacheStore;
+			}
+			
+		};break;
+		case STRATEGY_RESPONSE_VERSION: cache = new CacheStrategyResponseVersion(cacheGroup, cacheId){
+
+			@Override
+			protected CacheStore getCacheStore(Context context) {
+				return cacheStore;
+			}
+			
+		};break;
 		}
 		return cache;
 	}
     
-    protected CacheStore getCacheStore(Context context){
-    	if(mCachedAPI==null)
-    		mCachedAPI = CacheStore.getInstance(context);
-    	return mCachedAPI;
-    }
+    protected abstract CacheStore getCacheStore(Context context);
     
 	
 	public CacheStrategy(String cacheGroup, String cacheId){
@@ -80,9 +96,9 @@ public abstract class CacheStrategy {
 		return mCacheId;
 	}
 	
-    public abstract void getRequest(APIManager apiManager, String address, final Map<String,String> headerParams, APIRequestHandler handler);
+    public abstract void getRequest(APIClient apiManager, String address, final Map<String,String> headerParams, APIRequestHandler handler);
     
-    public abstract void postRequest(APIManager apiManager, String address, Map<String, String> params ,APIRequestHandler handler);
+    public abstract void postRequest(APIClient apiManager, String address, Map<String, String> params ,APIRequestHandler handler);
     
     protected void log(String message) {
     	Log.i("CACHE:"+this.getClass().getSimpleName(), message);

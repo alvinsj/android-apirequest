@@ -37,18 +37,18 @@ import org.apache.http.HttpEntity;
 import android.content.Context;
 import android.util.Log;
 
-import com.stepsdk.android.api.APIManager;
+import com.stepsdk.android.api.APIClient;
 import com.stepsdk.android.api.APIRequestHandler;
 import com.stepsdk.android.cache.CacheStore;
 import com.stepsdk.android.cache.api.CachableHttpEntity;
 
-public class CacheStrategyResponseVersion extends CacheStrategy{
+public abstract class CacheStrategyResponseVersion extends CacheStrategy{
 	public CacheStrategyResponseVersion(String cacheGroup, String cacheId) {
 		super(cacheGroup, cacheId);
 	}
 	
 	@Override
-	public void getRequest(APIManager apiManager, String address, final Map<String,String> headerParams,
+	public void getRequest(APIClient apiManager, String address, final Map<String,String> headerParams,
 			APIRequestHandler handler) {
 		
 		apiManager.get(address, headerParams, getAPIRequestHandler(handler, apiManager.getContext()));
@@ -60,7 +60,7 @@ public class CacheStrategyResponseVersion extends CacheStrategy{
 	}
 
 	@Override
-	public void postRequest(APIManager apiManager, String address,
+	public void postRequest(APIClient apiManager, String address,
 			Map<String, String> params, APIRequestHandler handler) {
 		
         apiManager.post(address, params, getAPIRequestHandler(handler, apiManager.getContext()));

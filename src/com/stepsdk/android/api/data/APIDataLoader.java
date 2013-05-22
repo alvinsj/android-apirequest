@@ -84,7 +84,7 @@ public class APIDataLoader {
     }
 
     private boolean runRequest(APIRequest request, String cacheId, APIDataRequestHandler handler) {
-        request.startDownload(cacheId, handler);
+        request.startDownload(cacheId,  mContext.getCacheDir(), handler );
         return true;
     }
 

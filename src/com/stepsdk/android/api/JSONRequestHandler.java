@@ -45,16 +45,17 @@ import java.io.InputStream;
 public abstract class JSONRequestHandler extends APIRequestHandler {
     public static final String TAG = "JSONRequestHandler";
 
-    protected JSONObject mResponse;
-
     @Override
-    public void onResponse(HttpEntity response) throws Exception {
-        mResponse = parseJSONObject(response);
+    public void onResponse(HttpEntity response) {
+    	try{
+    		JSONObject jsonResponse = parseJSONObject(response);
+        	onResponse(response, jsonResponse);
+    	}catch(Exception e){
+    		onException(e);
+    	}
     }
-
-    public JSONObject getResponse() {
-        return mResponse;
-    };
+    
+    public abstract void onResponse(HttpEntity response, JSONObject jsonResponse);
 
     public JSONObject parseJSONObject(HttpEntity ent) throws JSONResponseError {
         String result = null;
