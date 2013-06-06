@@ -144,7 +144,7 @@ public abstract class DownloadFileTask extends AsyncTask<Void, Integer, Boolean>
             //}
         } catch (Exception e) {
             //e.printStackTrace();
-            Log.d("DownloadFileTask", "Download failure: "+mUrl);
+            Log.d("DownloadFileTask", "Download failure: "+mUrl+" ("+e.getMessage()+")");
             return false;
         }
     }
