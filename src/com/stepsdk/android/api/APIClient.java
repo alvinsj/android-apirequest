@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -267,7 +268,13 @@ public class APIClient {
     private CacheStore mCacheStore;
     protected CacheStore defaultCacheStore() throws Exception{
     	if(mCacheStore == null)
-    		throw new CacheStoreNotSetException("CacheStore not set.");
+    		return new CacheStore(getContext()) {
+				
+				@Override
+				public String storeName() {
+					return "APIClient";
+				}
+			};
     	else 
     		return mCacheStore;
     }
@@ -306,6 +313,11 @@ public class APIClient {
                 super.onPostExecute(result);
                 handler.after();
             };
+            @Override
+            protected void onProgressUpdate(Integer[] changed) {
+            	
+            	handler.onProgressUpdate(changed[0]);
+            };
 
         }.execute();
     }
@@ -328,7 +340,7 @@ public class APIClient {
         Iterator<Entry<String, String>> i = params.entrySet().iterator();
         while (i.hasNext()) {
             Entry<String, String> next = i.next();
-            nameValuePairs.add(new BasicNameValuePair(next.getValue(), next.getValue()));
+            nameValuePairs.add(new BasicNameValuePair(next.getKey(), next.getValue()));
         }
 
         UrlEncodedFormEntity postEnt = new UrlEncodedFormEntity(nameValuePairs);
@@ -397,7 +409,7 @@ public class APIClient {
                 return isRedirect;
             }
         });
-
+        
         HttpGet get = new HttpGet(url);
         
         if(headerParams == null)
@@ -580,7 +592,7 @@ public class APIClient {
         }
     }
     
-    public static void log(String where, String message){
+    public void log(String where, String message){
     }
 
 }
