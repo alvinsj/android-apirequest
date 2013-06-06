@@ -94,6 +94,13 @@ public class APIThumbnailLoader extends Observable{
     public void loadThumbnail( ImageView iv, String url, String cacheId ) {
         loadThumbnail(-1, iv, url, cacheId);
     }
+    
+    private static APIClient apiClient;
+    private APIClient apiClient(Context context){
+    	if (apiClient == null)
+    		apiClient = new APIClient(context);
+    	return apiClient;
+    }
 
     public void loadThumbnail(final int position, final ImageView iv, final String url, final String cacheId) {
         
@@ -143,14 +150,14 @@ public class APIThumbnailLoader extends Observable{
 
             if (mBusy)
                 return;
-            APIClient.log("APIThumbnailLoader", "Downloading("+url+"):"+cacheId);
+            apiClient(mContext).log("APIThumbnailLoader", "Downloading("+url+"):"+cacheId);
 
-            mThumbnailLoader.load(new APIRequest(new APIClient(mContext), url, "GET"), cacheId,
+            mThumbnailLoader.load(new APIRequest(apiClient(mContext), url, "GET"), cacheId,
                     new APIDataRequestHandler() {
 
                         @Override
                         public void onException(Exception e) {
-                            APIClient.log("APIThumbnailLoader", "Error downloading thumbnail: "+cacheId);
+                        	apiClient(mContext).log("APIThumbnailLoader", "Error downloading thumbnail: "+cacheId);
                         }
 
                         @Override
@@ -166,7 +173,7 @@ public class APIThumbnailLoader extends Observable{
                             msg.setData(b);
                             msg.obj = iv;
                             
-                            APIClient.log("APIThumbnailLoader", "Downloaded("+url+"):"+data.getAbsolutePath());
+                            apiClient(mContext).log("APIThumbnailLoader", "Downloaded("+url+"):"+data.getAbsolutePath());
                             onThumbnailLoadedHandler().sendMessage(msg);
 
                             data = null;
@@ -174,7 +181,7 @@ public class APIThumbnailLoader extends Observable{
                         
                         @Override
                         public void after() {
-                            APIClient.log("APIThumbnailLoader", "DownloadingTask ended: "+url);
+                        	apiClient(mContext).log("APIThumbnailLoader", "DownloadingTask ended: "+url);
                         	super.after();
                         }
                     });
@@ -197,7 +204,7 @@ public class APIThumbnailLoader extends Observable{
                 int position = msg.getData().getInt("position");
 
                 ImageView iv = (ImageView)msg.obj;
-                APIClient.log("APIThumbnailLoader", "Setting thumbnail from:"+filepath);
+                apiClient(mContext).log("APIThumbnailLoader", "Setting thumbnail from:"+filepath);
 
                 try {
                     Bitmap bm = BitmapFactory.decodeFile(filepath);
@@ -208,7 +215,7 @@ public class APIThumbnailLoader extends Observable{
                         iv.setImageURI(Uri.parse(filepath));
                         iv.setVisibility(View.VISIBLE);
                         
-                        APIClient.log("APIThumbnailLoader", "Image("+filepath+") set for :"+cacheId);
+                        apiClient(mContext).log("APIThumbnailLoader", "Image("+filepath+") set for :"+cacheId);
 
                         onThumbnailLoaded(filepath);
 
@@ -229,14 +236,13 @@ public class APIThumbnailLoader extends Observable{
                     	else if(bm == null)
                     		throw new Exception("Bitmap cannot be decoded");
                     	else 
-                    		APIClient.log("APIThumbnailLoader", "Wrong position for:"+cacheId);
+                    		apiClient(mContext).log("APIThumbnailLoader", "Wrong position for:"+cacheId);
                     }
                 } catch (Exception e) {
                     File f = new File(filepath);
                     f.delete();
                     f = null;
-                    APIClient.log("APIThumbnailLoader", "Exception for ("+filepath+"):"+e.getMessage());
-
+                    apiClient(mContext).log("APIThumbnailLoader", "Exception for ("+filepath+"):"+e.getMessage());
                 }
                 setChanged();
                 notifyObservers(new Event("loadThumbnail").withObjects(msg.obj, url, cacheId, filepath));
