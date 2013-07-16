@@ -118,8 +118,6 @@ public class APIClient {
     
     private void initWithContext(Context context){
     	mContext = context;
-        WebView web = new WebView(mContext);
-        WEB_USER_AGENT = web.getSettings().getUserAgentString();
     }
     
     public Context getContext() {
@@ -202,7 +200,7 @@ public class APIClient {
     }
     public void post(final String address, final Map<String, String> params, final Map<String, String> files,
             final APIRequestHandler handler) {
-        log(TAG, "POST: "+address);
+        log(TAG, "POST: "+address + "("+params.toString()+")");
 
         new AsyncTask<Void, Void, Void>() {
             
@@ -387,7 +385,8 @@ public class APIClient {
 
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
+        if(WEB_USER_AGENT != null)
+        	params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
         int timeoutConnection = 3000;
         HttpConnectionParams.setConnectionTimeout(params, timeoutConnection);
         int timeoutSocket = 5000;
@@ -473,7 +472,8 @@ public class APIClient {
         
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
+        if(WEB_USER_AGENT != null)
+        	params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
         mHttpclient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
         
         HttpPost post = new HttpPost(url);
@@ -501,7 +501,8 @@ public class APIClient {
         
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
+        if(WEB_USER_AGENT != null)
+        	params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
         int timeoutConnection = 3000;
         HttpConnectionParams.setConnectionTimeout(params, timeoutConnection);
         int timeoutSocket = 5000;

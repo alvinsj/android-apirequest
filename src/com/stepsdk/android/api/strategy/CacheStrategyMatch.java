@@ -87,6 +87,7 @@ public abstract class CacheStrategyMatch extends CacheStrategy {
         	getCacheStore(context).remove(getCacheGroup(), getCacheId());
             handler.onException(e);
         }
+        handler.after();
 	}
 	
 	private APIRequestHandler getAPIRequestHandler(final APIRequestHandler handler, final Context context){

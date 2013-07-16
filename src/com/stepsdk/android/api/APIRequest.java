@@ -131,7 +131,7 @@ public class APIRequest {
 	                String key = i.next();
 	                if(key==null || params.get(key)==null)
 	                    continue;
-	                mUrl += key+"="+URLEncoder.encode(params.get(key));
+	                mUrl += key+"="+URLEncoder.encode(params.get(key), "UTF-8");
 	                if(i.hasNext()) mUrl+="&";
 	            }
 	            

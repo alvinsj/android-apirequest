@@ -101,7 +101,7 @@ public abstract class CacheStrategy {
     public abstract void postRequest(APIClient apiManager, String address, Map<String, String> params ,APIRequestHandler handler);
     
     protected void log(String message) {
-    	Log.i("CACHE:"+this.getClass().getSimpleName(), message);
+    	Log.i("APICache", message);
     }
 	
 }
