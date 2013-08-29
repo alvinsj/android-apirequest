@@ -45,6 +45,8 @@ public abstract class CacheStrategy {
 	public static final int STRATEGY_MATCH = 1;
 	public static final int STRATEGY_LATEST = 2;
 	public static final int STRATEGY_RESPONSE_VERSION = 3;
+	public static final int STRATEGY_MATCH_REPLACE = 4;
+
 	
     private String mCacheGroup;
     private String mCacheId;
@@ -69,6 +71,14 @@ public abstract class CacheStrategy {
 			
 		};break;
 		case STRATEGY_RESPONSE_VERSION: cache = new CacheStrategyResponseVersion(cacheGroup, cacheId){
+
+			@Override
+			protected CacheStore getCacheStore(Context context) {
+				return cacheStore;
+			}
+			
+		};break;
+		case STRATEGY_MATCH_REPLACE: cache = new CacheStrategyMatchReplace(cacheGroup, cacheId){
 
 			@Override
 			protected CacheStore getCacheStore(Context context) {

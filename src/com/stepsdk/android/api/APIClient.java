@@ -111,6 +111,10 @@ public class APIClient {
     	initWithContext(context);  
     	mCacheStore = cacheStore;
     }
+    
+    public CacheStore cacheStore(){
+    	return mCacheStore;
+    }
 
     public APIClient(Context context) {
     	initWithContext(context);  
