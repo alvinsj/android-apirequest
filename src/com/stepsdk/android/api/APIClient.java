@@ -473,7 +473,8 @@ public class APIClient {
 
     public HttpEntity httpPost(String url, UrlEncodedFormEntity ent) throws NetworkDownException,
             HttpPostException {
-        
+    	mHttpclient = new DefaultHttpClient();
+    	
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
         if(WEB_USER_AGENT != null)
