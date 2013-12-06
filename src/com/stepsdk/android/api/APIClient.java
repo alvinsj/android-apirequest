@@ -34,6 +34,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
+import java.net.URI;
 import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -74,16 +75,16 @@ import android.webkit.WebView;
 import com.stepsdk.android.api.data.APIDataRequestHandler;
 import com.stepsdk.android.api.data.DownloadFileTask;
 import com.stepsdk.android.api.strategy.CacheStrategy;
-import com.stepsdk.android.app.AppConfig;
 import com.stepsdk.android.cache.CacheStore;
 import com.stepsdk.android.cache.api.CachableHttpEntity;
 import com.stepsdk.android.http.CountingMultipartEntity;
 import com.stepsdk.android.http.CountingMultipartEntity.ProgressListener;
+import com.stepsdk.android.util.DeviceUtil;
 import com.stepsdk.android.util.FileUtil;
 import com.stepsdk.android.util.NetworkUtil;
 import com.stepsdk.android.util.NetworkUtil.NetworkDownException;
 
-public class APIManager {
+public class APIClient {
     public static final String TAG = "APIManager";
 
     public static final int NO_ERROR = 0;
@@ -106,14 +107,22 @@ public class APIManager {
         
     public static String WEB_USER_AGENT;
 
-
-    public APIManager(Context context) {
-        mContext = context;
-        WebView web = new WebView(mContext);
-        WEB_USER_AGENT = web.getSettings().getUserAgentString();
-        
+    public APIClient(Context context, CacheStore cacheStore) {
+    	initWithContext(context);  
+    	mCacheStore = cacheStore;
     }
     
+    public CacheStore cacheStore(){
+    	return mCacheStore;
+    }
+
+    public APIClient(Context context) {
+    	initWithContext(context);  
+    }
+    
+    private void initWithContext(Context context){
+    	mContext = context;
+    }
     
     public Context getContext() {
     	return mContext;
@@ -128,12 +137,12 @@ public class APIManager {
     }
 
     public void get(final String address, final Map<String,String> headerParams , final APIRequestHandler handler) {
-        log("GET: "+address);
+        log(TAG, "GET: "+address);
         new AsyncTask<Void, Void, Void>() {
             private boolean mInterrupt = false;
             @Override
             protected void onPreExecute() {
-                log("starting request for " + address);
+                log(TAG, "starting request for " + address);
                 handler.before();
             };
 
@@ -148,7 +157,7 @@ public class APIManager {
                             return null;
                         }
 
-                        log("processing request for " + address);
+                        log(TAG, "processing request for " + address);
                         HttpEntity response = getRequest(address, headerParams);
                         handler.onResponse(response);
                         break;
@@ -181,7 +190,7 @@ public class APIManager {
 
             @Override
             protected void onPostExecute(Void result) {
-                log("Completed request for " + address);
+                log(TAG, "Completed request for " + address);
                 if(!mInterrupt)
                     handler.after();
             };
@@ -195,7 +204,7 @@ public class APIManager {
     }
     public void post(final String address, final Map<String, String> params, final Map<String, String> files,
             final APIRequestHandler handler) {
-        log("POST: "+address);
+        log(TAG, "POST: "+address + "("+params.toString()+")");
 
         new AsyncTask<Void, Void, Void>() {
             
@@ -258,12 +267,34 @@ public class APIManager {
         }.execute();
     }
     
-
+    private CacheStore mCacheStore;
+    protected CacheStore defaultCacheStore() throws Exception{
+    	if(mCacheStore == null)
+    		return new CacheStore(getContext()) {
+				
+				@Override
+				public String storeName() {
+					return "APIClient";
+				}
+			};
+    	else 
+    		return mCacheStore;
+    }
+    
+    public static class CacheStoreNotSetException extends Exception{
+    	private static final long serialVersionUID = 0;
+    	public CacheStoreNotSetException(String message){
+    		super(message);
+    	}
+    }
+    
     public void download(final String address, final String cacheFileId,
-            final APIDataRequestHandler handler) {
+            final APIDataRequestHandler handler, final File folder) {
 
         new DownloadFileTask(mContext, address, cacheFileId) {
-
+        	public File defaultCacheFolder(Context context) {
+        		return folder;
+        	};
             @Override
             protected void onPreExecute() {
                 super.onPreExecute();
@@ -283,6 +314,11 @@ public class APIManager {
             protected void onPostExecute(Boolean result) {
                 super.onPostExecute(result);
                 handler.after();
+            };
+            @Override
+            protected void onProgressUpdate(Integer[] changed) {
+            	
+            	handler.onProgressUpdate(changed[0]);
             };
 
         }.execute();
@@ -306,7 +342,7 @@ public class APIManager {
         Iterator<Entry<String, String>> i = params.entrySet().iterator();
         while (i.hasNext()) {
             Entry<String, String> next = i.next();
-            nameValuePairs.add(new BasicNameValuePair(next.getValue(), next.getValue()));
+            nameValuePairs.add(new BasicNameValuePair(next.getKey(), next.getValue()));
         }
 
         UrlEncodedFormEntity postEnt = new UrlEncodedFormEntity(nameValuePairs);
@@ -353,7 +389,8 @@ public class APIManager {
 
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
+        if(WEB_USER_AGENT != null)
+        	params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
         int timeoutConnection = 3000;
         HttpConnectionParams.setConnectionTimeout(params, timeoutConnection);
         int timeoutSocket = 5000;
@@ -375,7 +412,7 @@ public class APIManager {
                 return isRedirect;
             }
         });
-
+        
         HttpGet get = new HttpGet(url);
         
         if(headerParams == null)
@@ -394,6 +431,13 @@ public class APIManager {
 
         while (entity == null) {
             try {
+            	
+            	if(!DeviceUtil.checkPermission(mContext, "android.permission.ACCESS_NETWORK_STATE"))
+            		throw new NetworkDownException("ACCESS_NETWORK_STATE permission not set in AndroidManifest.xml");
+            	
+            	if(!DeviceUtil.checkPermission(mContext, "android.permission.INTERNET"))
+            		throw new NetworkDownException("INTERNET permission not set in AndroidManifest.xml");
+            	
                 if (!NetworkUtil.isOnline(mContext))
                     throw new NetworkDownException();
 
@@ -429,10 +473,12 @@ public class APIManager {
 
     public HttpEntity httpPost(String url, UrlEncodedFormEntity ent) throws NetworkDownException,
             HttpPostException {
-        
+    	mHttpclient = new DefaultHttpClient();
+    	
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
+        if(WEB_USER_AGENT != null)
+        	params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
         mHttpclient = new DefaultHttpClient(new ThreadSafeClientConnManager(params, mgr.getSchemeRegistry()), params);
         
         HttpPost post = new HttpPost(url);
@@ -460,7 +506,8 @@ public class APIManager {
         
         ClientConnectionManager mgr = mHttpclient.getConnectionManager();
         HttpParams params = mHttpclient.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
+        if(WEB_USER_AGENT != null)
+        	params.setParameter(CoreProtocolPNames.USER_AGENT, WEB_USER_AGENT);
         int timeoutConnection = 3000;
         HttpConnectionParams.setConnectionTimeout(params, timeoutConnection);
         int timeoutSocket = 5000;
@@ -473,12 +520,12 @@ public class APIManager {
         try {
             if( !NetworkUtil.isOnline(mContext) )
                 throw new NetworkDownException();
-            log("executing request " + httppost.getRequestLine());
+            log(TAG, "executing request " + httppost.getRequestLine());
             HttpResponse response = mHttpclient.execute(httppost);
-            log(response.getStatusLine().toString());
+            log(TAG, response.getStatusLine().toString());
             HttpEntity result = response.getEntity();
             if (response != null) {
-                log( EntityUtils.toString(result));
+                log(TAG, EntityUtils.toString(result));
                 result.consumeContent();
             }
             mHttpclient.getConnectionManager().shutdown();
@@ -510,7 +557,7 @@ public class APIManager {
         long filesize = 0;
         ContentBody cbFile = null;
         
-        log("from upload path: "+fromPath);
+        log(TAG, "from upload path: "+fromPath);
         
         // upload from content uri
         if(fromPath.indexOf("content://")>-1) {
@@ -551,8 +598,7 @@ public class APIManager {
         }
     }
     
-    public static void log(String message){
-        AppConfig.log("APIManager", message);
+    public void log(String where, String message){
     }
 
 }

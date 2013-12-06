@@ -45,5 +45,6 @@ public abstract class APIDataRequestHandler implements IRequestHandler {
     public abstract void onResponse(File data);
 
     public abstract void onException(Exception e);
-
+    
+    public void onProgressUpdate(int changed){};
 }

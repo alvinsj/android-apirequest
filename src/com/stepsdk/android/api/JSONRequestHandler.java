@@ -45,16 +45,17 @@ import java.io.InputStream;
 public abstract class JSONRequestHandler extends APIRequestHandler {
     public static final String TAG = "JSONRequestHandler";
 
-    protected JSONObject mResponse;
-
     @Override
-    public void onResponse(HttpEntity response) throws Exception {
-        mResponse = parseJSONObject(response);
+    public void onResponse(HttpEntity response) {
+    	try{
+    		JSONObject jsonResponse = parseJSONObject(response);
+        	onResponse(response, jsonResponse);
+    	}catch(Exception e){
+    		onException(e);
+    	}
     }
-
-    public JSONObject getResponse() {
-        return mResponse;
-    };
+    
+    public abstract void onResponse(HttpEntity response, JSONObject jsonResponse) throws Exception;
 
     public JSONObject parseJSONObject(HttpEntity ent) throws JSONResponseError {
         String result = null;
@@ -65,14 +66,16 @@ public abstract class JSONRequestHandler extends APIRequestHandler {
                 
                 if(result.startsWith("["))
                     result = "{\"array\":"+result+"}";
-                //else
-                JSONObject json = new JSONObject(result);
+                
+                JSONObject json = new JSONObject();
+                if(result.length() > 0 )
+                	json = new JSONObject(result);
                 
                 return json;
             } catch (Exception e) {
-                if(result != null)
-                    Log.d(TAG, "Error JSON format: "+result);
-                //Log.e(TAG, "Error Parsing to JSON: " + e.getMessage());
+                if(result != null && result.length() > 0)
+                    Log.e(TAG, "Error JSON format: "+result);
+                e.printStackTrace();
                 throw new JSONResponseError(e.getMessage());
             }
         }

@@ -42,8 +42,8 @@ import com.stepsdk.android.api.APIRequestHandler;
 import com.stepsdk.android.cache.CacheStore;
 import com.stepsdk.android.cache.api.CachableHttpEntity;
 
-public abstract class CacheStrategyResponseVersion extends CacheStrategy{
-	public CacheStrategyResponseVersion(String cacheGroup, String cacheId) {
+public abstract class CacheStrategyMatchReplace extends CacheStrategy {
+	public CacheStrategyMatchReplace(String cacheGroup, String cacheId){
 		super(cacheGroup, cacheId);
 	}
 	
@@ -51,32 +51,41 @@ public abstract class CacheStrategyResponseVersion extends CacheStrategy{
 	public void getRequest(APIClient apiManager, String address, final Map<String,String> headerParams,
 			APIRequestHandler handler) {
 		
-		apiManager.get(address, headerParams, getAPIRequestHandler(handler, apiManager.getContext()));
+		CachableHttpEntity ent = new CachableHttpEntity();
+        CacheStore store = getCacheStore(apiManager.getContext());
         
-	}
-	
-	private String getCacheVersion(){
-		return getCacheId()+"|version";
+        if(store.getMatched(ent, getCacheGroup(), getCacheId()) != null) {
+        	handleCachedResponse(ent, handler, apiManager.getContext());
+        }
+        apiManager.get(address, headerParams, getAPIRequestHandler(handler, apiManager.getContext()));
+        
 	}
 
 	@Override
 	public void postRequest(APIClient apiManager, String address,
 			Map<String, String> params, APIRequestHandler handler) {
 		
+		CacheStore store = getCacheStore(apiManager.getContext());
+        CachableHttpEntity ent = new CachableHttpEntity();
+        
+        if( store.getMatched(ent, getCacheGroup(), getCacheId()) != null){
+        	handleCachedResponse(ent, handler, apiManager.getContext());
+        }
         apiManager.post(address, params, getAPIRequestHandler(handler, apiManager.getContext()));
+        
 	}
 	
 	private void handleCachedResponse(CachableHttpEntity ent, APIRequestHandler handler, Context context){
-        log("Use Versioned CACHE("+getCacheGroup()+":"+getCacheId()+")");
+        log("Found Matching CACHE("+getCacheGroup()+":"+getCacheId()+")");
         
         handler.before();
         try {
             handler.onResponse(ent.getHttpEntity());
         } catch (Exception e) {
         	getCacheStore(context).remove(getCacheGroup(), getCacheId());
-        	getCacheStore(context).remove(getCacheGroup(), getCacheVersion());
             handler.onException(e);
         }
+        handler.after();
 	}
 	
 	private APIRequestHandler getAPIRequestHandler(final APIRequestHandler handler, final Context context){
@@ -84,60 +93,23 @@ public abstract class CacheStrategyResponseVersion extends CacheStrategy{
 		   
 		    @Override
 		    public void onException(Exception e) {
-		    	
-		    	// get back the original version
-	    		CachableHttpEntity ent = new CachableHttpEntity();
-		    	if(getCacheStore(context).getMatched(ent, getCacheGroup(), getCacheId()) != null){
-		    		handleCachedResponse(ent, handler, context);
-		    	}else
-		    		handler.onException(e);
+		    	getCacheStore(context).remove(getCacheGroup(), getCacheId());
+		        handler.onException(e);
 		        
 		    }
 		    
 		    @Override
 		    public void onResponse(HttpEntity response) throws Exception {
 		        
-		    	CacheStore store = getCacheStore(context);
-		    	// check version change
-		    	String version = store.get(getCacheGroup(), getCacheVersion());
-		    	
-		    	if( version != null && handler.hasVersionChanged(response, version)  ) {
-		    		log("VERSION CHANGED FROM "+version+" to "+handler.getVersion(response)+" of CACHE:("+getCacheId()+")");
-		    		// store and use new version
-		    		storeAndUseCache(response, version);
-		    	}else {
-		    		CachableHttpEntity ent = new CachableHttpEntity();
-		    		if( version!=null && store.getMatched(ent, getCacheGroup(), getCacheId()) != null ) {
-			    		log("VERSION REMAINED AS "+version+" of CACHE:("+getCacheId()+")");
-		    			// use old version
-		    			handleCachedResponse(ent, handler, context);
-		    		} else{
-
-		    			// old version not found, use current response
-		    			version = handler.getVersion(response);
-			    		log("NO VERSION FOUND AS "+version+" of CACHE:("+getCacheId()+")");
-
-		    			storeAndUseCache(response, version);
-		    		}
-		    	}
-		    	
-		        
-
-		    }
-		    
-		    private void storeAndUseCache(HttpEntity response, String version){
-		    	CachableHttpEntity entity = new CachableHttpEntity(getCacheGroup(), getCacheId(), response);
+		        CachableHttpEntity entity = new CachableHttpEntity(getCacheGroup(), getCacheId(),response);
 		        getCacheStore(context).put(entity);
-		        getCacheStore(context).put(getCacheGroup(), getCacheVersion(), version);
 		        
 		        CachableHttpEntity newEntity = new CachableHttpEntity();
 		        getCacheStore(context).getMatched(newEntity, getCacheGroup(), getCacheId());
 
-		        try{
-		        	handler.onResponse(newEntity.getHttpEntity());
-		        }catch(Exception e){
-		        	onException(e);
-		        }
+		        Log.i("CachedAPIRequest","CACHING("+getCacheGroup()+":"+getCacheId()+")");
+		        handler.onResponse(newEntity.getHttpEntity());
+
 		    }
 		    
 		    @Override
@@ -152,5 +124,4 @@ public abstract class CacheStrategyResponseVersion extends CacheStrategy{
 		};
 
 	}
-
 }

@@ -31,10 +31,9 @@
 
 package com.stepsdk.android.api.data;
 
-import com.stepsdk.android.app.AppConfig;
 import com.stepsdk.android.util.NetworkUtil;
-import com.stepsdk.android.util.QuickUI;
 
+import android.app.AlertDialog;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
@@ -49,7 +48,7 @@ import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-public class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
+public abstract class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
     public static final String TAG = "DownloadRemoteFileTask";
 
     private static final int MAX_BUFFER_SIZE = 1024; // 1kb
@@ -85,8 +84,10 @@ public class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
         mContext = context;
         mUrl = url;
         mId = cacheId;
-        mTargetFolder = AppConfig.cacheFolder(context);
+        mTargetFolder = defaultCacheFolder(context);
     }
+    
+    public abstract File defaultCacheFolder(Context context);
 
     public DownloadFileTask enableProgressBar() {
         mEnableProgress = true;
@@ -143,7 +144,7 @@ public class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
             //}
         } catch (Exception e) {
             //e.printStackTrace();
-            Log.d("DownloadFileTask", "Download failure: "+mUrl);
+            Log.d("DownloadFileTask", "Download failure: "+mUrl+" ("+e.getMessage()+")");
             return false;
         }
     }
@@ -157,7 +158,7 @@ public class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
     @Override
     protected void onPreExecute() {
         if (mEnableProgress) {
-            mProgressDialog = QuickUI.dialogProgressHorizontal(mContext, "Downloading...", true);
+            mProgressDialog = progessDialogForStatus(mContext, "Downloading...", true);
             mProgressDialog.setOnCancelListener(new OnCancelListener() {
                 public void onCancel(DialogInterface dialog) {
                     mInterrupt = true;
@@ -169,6 +170,25 @@ public class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
         }
 
     }
+    
+    protected ProgressDialog progessDialogForStatus(Context context, String message, boolean cancelable) {
+    	ProgressDialog progressDialog = new ProgressDialog(context);
+        progressDialog.setProgressStyle(ProgressDialog.STYLE_HORIZONTAL);
+        progressDialog.setMessage(message);
+        progressDialog.setCancelable(cancelable);
+        return progressDialog;
+    }
+    
+    protected AlertDialog dialogAlertForNotification(Context context, String title, String message, boolean cancelable) {
+        AlertDialog.Builder dlgBuilder = new AlertDialog.Builder(context);
+        dlgBuilder.setMessage(message).setCancelable(cancelable)
+                .setNegativeButton("OK", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int id) {
+                        dialog.cancel();
+                    }
+                });
+        return dlgBuilder.create();
+    }
 
     @Override
     protected void onPostExecute(Boolean result) {
@@ -176,11 +196,11 @@ public class DownloadFileTask extends AsyncTask<Void, Integer, Boolean> {
             mProgressDialog.dismiss();
         if (result && !mInterrupt) {
             if (mEnableProgress)
-                QuickUI.dialogAlert(mContext, "Download", "File download successfully", false)
+            	dialogAlertForNotification(mContext, "Download", "File download successfully", false)
                         .show();
         } else {
             if (mEnableProgress)
-                QuickUI.dialogAlert(mContext, "Download error", "Error downloading file", false)
+                dialogAlertForNotification(mContext, "Download error", "Error downloading file", false)
                         .show();
         }
     }

@@ -31,6 +31,7 @@
 
 package com.stepsdk.android.api;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -47,7 +48,7 @@ public class APIRequest {
 
     private String mUrl;
 
-    private APIManager mAPIManager;
+    private APIClient mAPIManager;
 
     private String mMethod;
 
@@ -61,7 +62,7 @@ public class APIRequest {
     
     private Map<String, String> mFiles = new HashMap<String, String>();
 
-    public APIRequest(APIManager manager, String url, String method) {
+    public APIRequest(APIClient manager, String url, String method) {
         mUrl = url;
         mAPIManager = manager;
         mMethod = method;
@@ -110,48 +111,55 @@ public class APIRequest {
         return this;
     }
     
+    protected CacheStore getCacheStore() throws Exception{
+    	return mAPIManager.defaultCacheStore();
+    }
+    
     // cached request
     public APIRequest startWithCache(int strategy, String type, String cacheId, APIRequestHandler apiRequestHandler) {
-        
-        if (mMethod.equals(GET)){
-            
-            HashMap<String,String> params = mergeParams(defaultParams(),mParams);
-
-            Iterator<String> i = params.keySet().iterator();
-            
-            if(!mUrl.contains("?"))
-                mUrl += "?";
-            
-            while(i.hasNext()){
-                String key = i.next();
-                if(key==null || params.get(key)==null)
-                    continue;
-                mUrl += key+"="+URLEncoder.encode(params.get(key));
-                if(i.hasNext()) mUrl+="&";
-            }
-            
-            // make cached request
-            if(type==null && cacheId == null)
-                mAPIManager.get(mUrl, mHeaderParams, apiRequestHandler);
-            else
-            	mAPIManager.cachedGet(
-                		CacheStrategy.build(strategy, type, cacheId)
-                		, mUrl
-                		, mHeaderParams
-                		, apiRequestHandler);
-        }
-        else if (mMethod.equals(POST)){
-            HashMap<String,String> params = mergeParams(defaultParams(),mParams);
-                       
-            if(mFiles.size()>0)
-               mAPIManager.post(mUrl, params, mFiles, apiRequestHandler);
-            else if(type == null && cacheId == null)
-                mAPIManager.post(mUrl, params, apiRequestHandler);
-            else
-            	mAPIManager.cachedPost(
-                		CacheStrategy.build(strategy, type, cacheId)
-                		, mUrl
-                		, params, apiRequestHandler);
+        try {
+	        if (mMethod.equals(GET)){
+	            
+	            HashMap<String,String> params = mergeParams(defaultParams(),mParams);
+	
+	            Iterator<String> i = params.keySet().iterator();
+	            
+	            if(!mUrl.contains("?"))
+	                mUrl += "?";
+	            
+	            while(i.hasNext()){
+	                String key = i.next();
+	                if(key==null || params.get(key)==null)
+	                    continue;
+	                mUrl += key+"="+URLEncoder.encode(params.get(key), "UTF-8");
+	                if(i.hasNext()) mUrl+="&";
+	            }
+	            
+	            // make cached request
+	            if(type==null && cacheId == null)
+	                mAPIManager.get(mUrl, mHeaderParams, apiRequestHandler);
+	            else
+	            	mAPIManager.cachedGet(
+	                		CacheStrategy.build(strategy, type, cacheId, getCacheStore())
+	                		, mUrl
+	                		, mHeaderParams
+	                		, apiRequestHandler);
+	        }
+	        else if (mMethod.equals(POST)){
+	            HashMap<String,String> params = mergeParams(defaultParams(),mParams);
+	                       
+	            if(mFiles.size()>0)
+	               mAPIManager.post(mUrl, params, mFiles, apiRequestHandler);
+	            else if(type == null && cacheId == null)
+	                mAPIManager.post(mUrl, params, apiRequestHandler);
+	            else
+	            	mAPIManager.cachedPost(
+	                		CacheStrategy.build(strategy, type, cacheId, getCacheStore())
+	                		, mUrl
+	                		, params, apiRequestHandler);
+	        }
+        }catch(Exception e){
+        	apiRequestHandler.onException(e);
         }
         return this;
     }
@@ -172,8 +180,8 @@ public class APIRequest {
         return newParams;
     }
 
-    public void startDownload(String cacheId, APIDataRequestHandler apiRequestHandler) {
-        mAPIManager.download(mUrl, cacheId, apiRequestHandler);
+    public void startDownload(String cacheId, File toFolder, APIDataRequestHandler apiRequestHandler) {
+        mAPIManager.download(mUrl, cacheId, apiRequestHandler, toFolder);
     }
     
     private Map<String, String> defaultParams(){
